@@ -142,16 +142,20 @@ class GohlkeGrabber:
 
     def _reread_packages(self):
         root = html.parse(BytesIO(self.index))
+        self.misc = {}
         self.packages = {}
         for list_item in root.xpath('//ul[@class="pylibs"]/li[a[@id]]'):
             identifier = str(list_item.xpath('a/@id')[0])
             if identifier == 'misc':
-                # stopping at misc, miscellaneous not supported
-                break
-            self.packages[identifier] = {
-                anchor.text: self._get_dl_info(str(anchor.xpath('@onclick')[0]))
-                for anchor in [li for li in list_item.xpath('ul/li/a') if Path(li.text).suffix == '.whl']
-            }
+                self.misc = {
+                    anchor.text: self._get_dl_info(str(anchor.xpath('@onclick')[0]))
+                    for anchor in [li for li in list_item.xpath('ul/li/a') if li.text is not None and Path(li.text).suffix == '.whl']
+                }
+            else:
+                self.packages[identifier] = {
+                    anchor.text: self._get_dl_info(str(anchor.xpath('@onclick')[0]))
+                    for anchor in [li for li in list_item.xpath('ul/li/a') if Path(li.text).suffix == '.whl']
+                }
 
     def retrieve(self, save_location, identifier,
                  overwrite=False, version=None, build=None, python=None, abi=None, platform='win_amd64'):
